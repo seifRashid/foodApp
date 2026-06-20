@@ -1,0 +1,6 @@
+{
+  "name": "Food Ordering App",
+  "description": "An extremely simple, clear, and user-friendly food ordering web application designed for ease of use.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
