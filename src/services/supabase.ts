@@ -257,6 +257,35 @@ const mockSupabaseClient = {
         };
       },
 
+      upsert: (records: any) => {
+        const storeKey = getStoreKey();
+        const data = JSON.parse(localStorage.getItem(storeKey) || '[]');
+        const toUpsert = Array.isArray(records) ? records : [records];
+        
+        const processed = toUpsert.map(record => {
+          const idx = data.findIndex((item: any) => item.id === record.id);
+          const updatedRecord = {
+            id: record.id || Math.random().toString(36).substr(2, 9),
+            created_at: idx > -1 ? data[idx].created_at : new Date().toISOString(),
+            ...record
+          };
+          if (idx > -1) {
+            data[idx] = updatedRecord;
+          } else {
+            data.push(updatedRecord);
+          }
+          return updatedRecord;
+        });
+
+        localStorage.setItem(storeKey, JSON.stringify(data));
+
+        return {
+          then: (callback: any) => {
+            return Promise.resolve(callback({ data: processed, error: null }));
+          }
+        };
+      },
+
       update: (record: any) => {
         return {
           eq: (col: string, val: any) => {
