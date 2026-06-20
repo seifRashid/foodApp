@@ -52,21 +52,53 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
               )}
             </Link>
 
-            {profile && (
+            {profile && role === 'admin' ? (
               <Link
-                to={role === 'admin' ? '/admin' : '/orders'}
+                to="/admin"
                 className={`font-semibold text-base transition-colors py-2 px-1 relative flex items-center gap-1.5 ${
-                  isActive(role === 'admin' ? '/admin' : '/orders')
+                  isActive('/admin')
                     ? 'text-brand-600'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 <ClipboardList className="h-4.5 w-4.5" />
-                {role === 'admin' ? 'Admin Dashboard' : 'My Orders'}
-                {isActive(role === 'admin' ? '/admin' : '/orders') && (
+                Admin Dashboard
+                {isActive('/admin') && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.75 bg-brand-600 rounded-full" />
                 )}
               </Link>
+            ) : profile && (
+              <>
+                <Link
+                  to="/dashboard"
+                  className={`font-semibold text-base transition-colors py-2 px-1 relative flex items-center gap-1.5 ${
+                    isActive('/dashboard')
+                      ? 'text-brand-600'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <User className="h-4.5 w-4.5" />
+                  Dashboard
+                  {isActive('/dashboard') && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.75 bg-brand-600 rounded-full" />
+                  )}
+                </Link>
+
+                <Link
+                  to="/orders"
+                  className={`font-semibold text-base transition-colors py-2 px-1 relative flex items-center gap-1.5 ${
+                    isActive('/orders')
+                      ? 'text-brand-600'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <ClipboardList className="h-4.5 w-4.5" />
+                  My Orders
+                  {isActive('/orders') && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.75 bg-brand-600 rounded-full" />
+                  )}
+                </Link>
+              </>
             )}
           </nav>
 
@@ -99,14 +131,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
                   </span>
                 )}
 
-                <div className="flex flex-col text-right hidden sm:flex">
-                  <span className="font-bold text-stone-900 text-sm leading-none">
+                <Link
+                  to={role === 'admin' ? '/admin' : '/dashboard'}
+                  className="flex flex-col text-right hidden sm:flex hover:text-brand-600 transition-colors"
+                >
+                  <span className="font-bold text-stone-900 hover:text-brand-600 text-sm leading-none">
                     {profile.full_name || 'My Account'}
                   </span>
                   <span className="text-xs text-stone-500 font-medium leading-none mt-1">
                     {profile.email}
                   </span>
-                </div>
+                </Link>
 
                 {/* Sign out key */}
                 <button

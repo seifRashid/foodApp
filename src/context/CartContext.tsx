@@ -6,6 +6,7 @@ interface CartContextType {
   addToCart: (item: FoodItem) => void;
   removeFromCart: (foodId: string) => void;
   updateQuantity: (foodId: string, quantity: number) => void;
+  addBulkToCart: (items: { food_id: string; name: string; price: number; quantity: number }[]) => void;
   clearCart: () => void;
   getCartTotal: () => number;
   getCartItemsCount: () => number;
@@ -72,6 +73,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartItems([]);
   };
 
+  const addBulkToCart = (items: { food_id: string; name: string; price: number; quantity: number }[]) => {
+    setCartItems((prev) => {
+      let current = [...prev];
+      items.forEach((item) => {
+        const existingIndex = current.findIndex((it) => it.food_id === item.food_id);
+        if (existingIndex > -1) {
+          current[existingIndex] = {
+            ...current[existingIndex],
+            quantity: current[existingIndex].quantity + item.quantity
+          };
+        } else {
+          current.push({
+            id: 'cart-' + Math.random().toString(36).substr(2, 9),
+            food_id: item.food_id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+          });
+        }
+      });
+      return current;
+    });
+  };
+
   const getCartTotal = () => {
     return cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   };
@@ -87,6 +112,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToCart,
         removeFromCart,
         updateQuantity,
+        addBulkToCart,
         clearCart,
         getCartTotal,
         getCartItemsCount,

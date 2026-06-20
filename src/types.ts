@@ -33,11 +33,13 @@ export interface Order {
   delivery_notes?: string;
 }
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'customer';
 
 export interface UserProfile {
   id: string;
   email: string;
   role: UserRole;
   full_name?: string;
+  phone?: string;
+  address?: string;
 }

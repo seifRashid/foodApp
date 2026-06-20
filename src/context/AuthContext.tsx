@@ -8,7 +8,8 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: any }>;
-  register: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  register: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: any }>;
+  updateProfile: (updated: Partial<UserProfile>) => Promise<{ error: any }>;
   logout: () => Promise<{ error: any }>;
 }
 
@@ -33,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // If not found in DB, let's create a default profile row
         // Usually, in a real Supabase app we do this with a trigger,
         // but adding a client-side fallback ensure total robustness!
-        const autoRole: UserRole = email.toLowerCase().includes('admin') ? 'admin' : 'user';
+        const autoRole: UserRole = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
         const newProfile: UserProfile = {
           id: userId,
           email: email,
@@ -55,12 +56,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setProfile(data);
-        setRole(data.role || 'user');
+        setRole(data.role || 'customer');
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
       // fallback
-      const defaultRole = email.toLowerCase().includes('admin') ? 'admin' : 'user';
+      const defaultRole = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
       setProfile({ id: userId, email, role: defaultRole, full_name: email.split('@')[0] });
       setRole(defaultRole as UserRole);
     }
@@ -128,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, fullName: string) => {
+  const register = async (email: string, password: string, fullName: string, assignedRole: UserRole = 'customer') => {
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -137,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             full_name: fullName,
+            role: assignedRole,
           },
         },
       });
@@ -146,11 +148,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // In real mode, a record would be inserted globally or through an invite, 
       // but let's manually write to user profile row to be super safe.
       if (data?.user) {
-        const autoRole: UserRole = email.toLowerCase().includes('admin') ? 'admin' : 'user';
         const newProfile: UserProfile = {
           id: data.user.id,
           email,
-          role: autoRole,
+          role: assignedRole,
           full_name: fullName,
         };
 
@@ -184,8 +185,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (updated: Partial<UserProfile>) => {
+    if (!user) return { error: new Error('User not logged in') };
+    setLoading(true);
+    try {
+      const updatedProfile = { ...profile, ...updated } as UserProfile;
+      
+      // Update in Supabase profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, ...updatedProfile });
+
+      if (error) throw error;
+      
+      // Update locally
+      setProfile(updatedProfile);
+      if (updated.role) setRole(updated.role);
+      
+      // If mock mode, let's keep mock_profiles in sync
+      if (isMockMode) {
+        const savedProfiles = localStorage.getItem('mock_profiles');
+        if (savedProfiles) {
+          const list = JSON.parse(savedProfiles) as UserProfile[];
+          const idx = list.findIndex(p => p.id === user.id);
+          if (idx > -1) {
+            list[idx] = { ...list[idx], ...updated };
+            localStorage.setItem('mock_profiles', JSON.stringify(list));
+          }
+        }
+        localStorage.setItem('mock_active_user', JSON.stringify(updatedProfile));
+      }
+      
+      return { error: null };
+    } catch (err: any) {
+      console.error('Error updating profile in context:', err);
+      return { error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, role, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, profile, role, loading, login, register, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,27 +8,32 @@ import { motion } from 'motion/react';
 
 interface LoginProps {
   isAdmin?: boolean;
+  isRegisterInitial?: boolean;
 }
 
-export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
+export const Login: React.FC<LoginProps> = ({ isAdmin = false, isRegisterInitial = false }) => {
   const { login, register, user, role } = useAuth();
   const navigate = useNavigate();
   
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(isRegisterInitial);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    setIsRegister(isRegisterInitial);
+  }, [isRegisterInitial]);
+
   // If already logged in, redirect depending on credentials and user profiles
   React.useEffect(() => {
     if (user) {
-      const activeRole = role || (user.email?.toLowerCase().includes('admin') ? 'admin' : 'user');
+      const activeRole = role || (user.email?.toLowerCase().includes('admin') ? 'admin' : 'customer');
       if (activeRole === 'admin') {
         navigate('/admin');
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     }
   }, [user, role, navigate]);
@@ -38,13 +43,14 @@ export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
     setAuthError(null);
     setIsSubmitting(true);
 
-    if (isRegister && !isAdmin) {
+    if (isRegister) {
       if (!fullName.trim()) {
         setAuthError('Please enter your full name.');
         setIsSubmitting(false);
         return;
       }
-      const { error } = await register(email, password, fullName);
+      const assignedRole = isAdmin ? 'admin' : 'customer';
+      const { error } = await register(email, password, fullName, assignedRole);
       if (error) {
         setAuthError(error.message || 'Registration failed. Check password length (min 6 characters).');
       }
@@ -91,12 +97,12 @@ export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
 
         <h2 className="text-3xl font-extrabold text-stone-900 tracking-tight text-center">
           {isAdmin 
-            ? 'Admin Portal Sign In' 
-            : isRegister ? 'Create Account' : 'Welcome to FreshMeal'}
+            ? (isRegister ? 'Admin Portal Register' : 'Admin Portal Sign In') 
+            : (isRegister ? 'Create Account' : 'Welcome to FreshMeal')}
         </h2>
         <p className="text-stone-500 font-medium text-sm text-center mt-2 mb-6">
           {isAdmin 
-            ? 'Access transactions control dashboard and manage food menus.'
+            ? (isRegister ? 'Create an administrator account to manage food menus.' : 'Access transactions control dashboard and manage food menus.')
             : isRegister
               ? 'Sign up to place your first food order in seconds!'
               : 'Enter your details below to log in and select meals.'}
@@ -154,7 +160,7 @@ export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
         )}
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-          {isRegister && !isAdmin && (
+          {isRegister && (
             <div className="relative">
               <Input
                 id="login-name"
@@ -205,22 +211,51 @@ export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
             }`}
           >
             {isAdmin 
-              ? 'Administrator Login' 
+              ? (isRegister ? 'Register Administrator Account' : 'Administrator Login') 
               : isRegister ? 'Register Account' : 'Log In Now'}
           </Button>
         </form>
 
         {/* Link navigation */}
-        <div className="mt-6 text-sm font-semibold text-stone-600">
+        <div className="mt-6 text-sm font-semibold text-stone-600 w-full text-center">
           {isAdmin ? (
-            <div className="text-center">
-              <span className="text-xs text-slate-400 font-medium">Looking for customer portal? </span>
-              <a
-                href="/login"
-                className="text-brand-600 hover:text-brand-700 font-bold block mt-1"
-              >
-                Go to Guest Login
-              </a>
+            <div className="flex flex-col items-center gap-3">
+              {isRegister ? (
+                <span>
+                  Already joined admin pool?{' '}
+                  <button
+                    onClick={() => {
+                      setIsRegister(false);
+                      setAuthError(null);
+                    }}
+                    className="text-stone-900 hover:text-black font-extrabold focus:outline-none cursor-pointer"
+                  >
+                    Log In
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  Need admin access?{' '}
+                  <button
+                    onClick={() => {
+                      setIsRegister(true);
+                      setAuthError(null);
+                    }}
+                    className="text-stone-900 hover:text-black font-extrabold focus:outline-none cursor-pointer"
+                  >
+                    Register Admin
+                  </button>
+                </span>
+              )}
+              <div className="w-full border-t border-slate-100 pt-3.5 mt-1">
+                <span className="text-xs text-slate-400 font-medium">Looking for customer portal? </span>
+                <a
+                  href="/login"
+                  className="text-brand-600 hover:text-brand-700 font-bold block mt-1 text-xs"
+                >
+                  Go to Guest Login
+                </a>
+              </div>
             </div>
           ) : isRegister ? (
             <span>

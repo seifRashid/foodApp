@@ -88,7 +88,7 @@ const initMockDB = () => {
     // We can pre-register two users for demo purposes: an internal admin and a regular user
     const defaultProfiles: UserProfile[] = [
       { id: 'usr-admin', email: 'admin@demo.com', role: 'admin', full_name: 'System Admin' },
-      { id: 'usr-customer', email: 'user@demo.com', role: 'user', full_name: 'John Customer' }
+      { id: 'usr-customer', email: 'user@demo.com', role: 'customer', full_name: 'John Customer' }
     ];
     localStorage.setItem('mock_profiles', JSON.stringify(defaultProfiles));
   }
@@ -126,9 +126,8 @@ const mockSupabaseClient = {
       
       const newId = 'usr-' + Math.random().toString(36).substr(2, 9);
       const fullName = options?.data?.full_name || email.split('@')[0];
-      // Automatically assign role:
-      // If email has 'admin' in it, make it admin, otherwise user
-      const role: 'admin' | 'user' = email.toLowerCase().includes('admin') ? 'admin' : 'user';
+      // Automatically assign role from metadata options if specified, otherwise default based on email
+      const role: 'admin' | 'customer' = options?.data?.role || (email.toLowerCase().includes('admin') ? 'admin' : 'customer');
 
       const newProfile: UserProfile = {
         id: newId,
@@ -164,7 +163,7 @@ const mockSupabaseClient = {
         if (email === 'admin@demo.com' || email === 'user@demo.com') {
           const defaultProfiles: UserProfile[] = [
             { id: 'usr-admin', email: 'admin@demo.com', role: 'admin', full_name: 'System Admin' },
-            { id: 'usr-customer', email: 'user@demo.com', role: 'user', full_name: 'John Customer' }
+            { id: 'usr-customer', email: 'user@demo.com', role: 'customer', full_name: 'John Customer' }
           ];
           const prof = defaultProfiles.find(p => p.email === email)!;
           localStorage.setItem('mock_active_user', JSON.stringify(prof));

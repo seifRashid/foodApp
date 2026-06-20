@@ -36,6 +36,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   React.useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
+      if (profile.phone) {
+        setPhoneNumber(profile.phone);
+      }
+      if (profile.address) {
+        setAddress(profile.address);
+      }
     }
   }, [profile, isOpen]);
 
