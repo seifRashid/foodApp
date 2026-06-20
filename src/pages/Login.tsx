@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { ShoppingBasket, ShieldCheck, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { ShoppingBasket, ShieldCheck, Mail, Lock, User, AlertCircle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const Login: React.FC = () => {
-  const { login, register, user } = useAuth();
+interface LoginProps {
+  isAdmin?: boolean;
+}
+
+export const Login: React.FC<LoginProps> = ({ isAdmin = false }) => {
+  const { login, register, user, role } = useAuth();
   const navigate = useNavigate();
   
   const [isRegister, setIsRegister] = useState(false);
@@ -17,19 +21,24 @@ export const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // If already logged in, redirect home
+  // If already logged in, redirect depending on credentials and user profiles
   React.useEffect(() => {
     if (user) {
-      navigate('/');
+      const activeRole = role || (user.email?.toLowerCase().includes('admin') ? 'admin' : 'user');
+      if (activeRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     }
-  }, [user, navigate]);
+  }, [user, role, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setIsSubmitting(true);
 
-    if (isRegister) {
+    if (isRegister && !isAdmin) {
       if (!fullName.trim()) {
         setAuthError('Please enter your full name.');
         setIsSubmitting(false);
@@ -38,16 +47,26 @@ export const Login: React.FC = () => {
       const { error } = await register(email, password, fullName);
       if (error) {
         setAuthError(error.message || 'Registration failed. Check password length (min 6 characters).');
-      } else {
-        navigate('/');
       }
     } else {
+      // For Admin, verify role is indeed admin if logging in through admin portal or alert them if it's restricted
       const { error } = await login(email, password);
       if (error) {
         setAuthError(error.message || 'Incorrect email address or password.');
-      } else {
-        navigate('/');
       }
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleQuickLogin = async (demoEmail: string) => {
+    setAuthError(null);
+    setIsSubmitting(true);
+    setEmail(demoEmail);
+    setPassword('demopass123');
+    
+    const { error } = await login(demoEmail, 'demopass123');
+    if (error) {
+      setAuthError(error.message || 'Incorrect email address or password.');
     }
     setIsSubmitting(false);
   };
@@ -60,39 +79,71 @@ export const Login: React.FC = () => {
         className="max-w-md w-full bg-white border border-slate-100 rounded-[32px] p-8 shadow-warm-lg flex flex-col items-center"
       >
         {/* Core branding symbol */}
-        <div className="h-16 w-16 bg-brand-600 rounded-2xl flex items-center justify-center shadow-warm-md mb-4 rotate-6">
-          <ShoppingBasket className="h-9 w-9 text-white" />
-        </div>
+        {isAdmin ? (
+          <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-warm-md mb-4 -rotate-3">
+            <ShieldCheck className="h-9 w-9 text-brand-500" />
+          </div>
+        ) : (
+          <div className="h-16 w-16 bg-brand-600 rounded-2xl flex items-center justify-center shadow-warm-md mb-4 rotate-6">
+            <ShoppingBasket className="h-9 w-9 text-white" />
+          </div>
+        )}
 
         <h2 className="text-3xl font-extrabold text-stone-900 tracking-tight text-center">
-          {isRegister ? 'Create Account' : 'Welcome to FreshMeal'}
+          {isAdmin 
+            ? 'Admin Portal Sign In' 
+            : isRegister ? 'Create Account' : 'Welcome to FreshMeal'}
         </h2>
         <p className="text-stone-500 font-medium text-sm text-center mt-2 mb-6">
-          {isRegister
-            ? 'Sign up to place your first food order in seconds!'
-            : 'Enter your details below to log in and select meals.'}
+          {isAdmin 
+            ? 'Access transactions control dashboard and manage food menus.'
+            : isRegister
+              ? 'Sign up to place your first food order in seconds!'
+              : 'Enter your details below to log in and select meals.'}
         </p>
 
-        {/* Demo profiles help banner */}
-        {!isRegister && (
-          <div className="bg-amber-50 border border-amber-200/55 rounded-2xl p-4.5 w-full mb-6 text-sm flex gap-2 w-full text-amber-900 leading-relaxed font-medium">
-            <ShieldCheck className="h-5 w-5 text-brand-600 shrink-0 mt-0.5" />
+        {/* Demo profiles help banner - filter based on route */}
+        <div className="bg-orange-50/50 border border-orange-100 rounded-3xl p-5 w-full mb-6 text-sm flex flex-col gap-3.5 text-slate-800 leading-relaxed font-medium">
+          <div className="flex gap-2.5">
+            {isAdmin ? (
+              <ShieldCheck className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+            ) : (
+              <Sparkles className="h-5 w-5 text-brand-600 shrink-0 mt-0.5" />
+            )}
             <div>
-              <p className="font-extrabold text-amber-950">Demo Credentials Available:</p>
-              <ul className="list-disc list-inside mt-1 text-xs text-amber-800 space-y-0.5 font-normal">
-                <li>
-                  <span className="font-bold">Customer:</span> user@demo.com
-                </li>
-                <li>
-                  <span className="font-bold">Admin Panel:</span> admin@demo.com
-                </li>
-              </ul>
-              <p className="text-[11px] text-amber-700 font-semibold mt-1.5">
-                Passwords are local in mock mode - enter any password!
+              <p className="font-extrabold text-slate-900">
+                {isAdmin ? 'Instant Administrator Access:' : 'One-Click Customer Access:'}
+              </p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {isAdmin 
+                  ? 'Click key below to log in with pre-seeded Admin credentials:'
+                  : 'Click key below to instantly log into standard Guest view:'}
               </p>
             </div>
           </div>
-        )}
+          
+          <div className="w-full mt-1">
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin@demo.com')}
+                className="w-full flex flex-col items-center justify-center p-3.5 bg-slate-900 hover:bg-slate-800 border border-transparent rounded-2xl shadow-warm-xs text-center transition-all cursor-pointer text-white"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-brand-400">Launch Admin Console</span>
+                <span className="text-[10px] text-slate-350 mt-1 font-mono">admin@demo.com</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('user@demo.com')}
+                className="w-full flex flex-col items-center justify-center p-3.5 bg-white hover:bg-orange-50 border border-slate-100 hover:border-brand-500/30 rounded-2xl shadow-warm-xs text-center transition-all cursor-pointer"
+              >
+                <span className="text-xs font-black text-slate-700 hover:text-brand-600 uppercase tracking-widest">Sign In as Guest</span>
+                <span className="text-[10px] text-slate-400 mt-1 font-mono">user@demo.com</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Error alert frame banner */}
         {authError && (
@@ -103,7 +154,7 @@ export const Login: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-          {isRegister && (
+          {isRegister && !isAdmin && (
             <div className="relative">
               <Input
                 id="login-name"
@@ -122,7 +173,7 @@ export const Login: React.FC = () => {
             <Input
               id="login-email"
               label="Email Address"
-              placeholder="e.g., helper@demo.com"
+              placeholder={isAdmin ? "admin@demo.com" : "e.g., helper@demo.com"}
               type="email"
               required
               value={email}
@@ -147,15 +198,31 @@ export const Login: React.FC = () => {
           <Button
             type="submit"
             isLoading={isSubmitting}
-            className="w-full py-4 mt-2 hover:bg-brand-700 bg-brand-600 rounded-2xl"
+            className={`w-full py-4 mt-2 rounded-2xl ${
+              isAdmin 
+                ? 'bg-slate-900 hover:bg-slate-800 text-white' 
+                : 'hover:bg-brand-700 bg-brand-600'
+            }`}
           >
-            {isRegister ? 'Register Account' : 'Log In Now'}
+            {isAdmin 
+              ? 'Administrator Login' 
+              : isRegister ? 'Register Account' : 'Log In Now'}
           </Button>
         </form>
 
         {/* Link navigation */}
         <div className="mt-6 text-sm font-semibold text-stone-600">
-          {isRegister ? (
+          {isAdmin ? (
+            <div className="text-center">
+              <span className="text-xs text-slate-400 font-medium">Looking for customer portal? </span>
+              <a
+                href="/login"
+                className="text-brand-600 hover:text-brand-700 font-bold block mt-1"
+              >
+                Go to Guest Login
+              </a>
+            </div>
+          ) : isRegister ? (
             <span>
               Already have an account?{' '}
               <button
@@ -169,18 +236,29 @@ export const Login: React.FC = () => {
               </button>
             </span>
           ) : (
-            <span>
-              New to FreshMeal?{' '}
-              <button
-                onClick={() => {
-                  setIsRegister(true);
-                  setAuthError(null);
-                }}
-                className="text-brand-600 hover:text-brand-700 font-bold focus:outline-none cursor-pointer"
-              >
-                Create Account
-              </button>
-            </span>
+            <div className="flex flex-col items-center gap-4">
+              <span>
+                New to FreshMeal?{' '}
+                <button
+                  onClick={() => {
+                    setIsRegister(true);
+                    setAuthError(null);
+                  }}
+                  className="text-brand-600 hover:text-brand-700 font-bold focus:outline-none cursor-pointer"
+                >
+                  Create Account
+                </button>
+              </span>
+              <div className="w-full border-t border-slate-100 pt-4 text-center">
+                <span className="text-xs text-slate-400 font-medium">Are you an administrator? </span>
+                <a
+                  href="/admin/login"
+                  className="text-slate-700 hover:text-slate-950 font-bold block mt-1 text-xs"
+                >
+                  Access Administration Portal &rarr;
+                </a>
+              </div>
+            </div>
           )}
         </div>
       </motion.div>

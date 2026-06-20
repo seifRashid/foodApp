@@ -54,16 +54,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
 
             {profile && (
               <Link
-                to="/orders"
+                to={role === 'admin' ? '/admin' : '/orders'}
                 className={`font-semibold text-base transition-colors py-2 px-1 relative flex items-center gap-1.5 ${
-                  isActive('/orders')
+                  isActive(role === 'admin' ? '/admin' : '/orders')
                     ? 'text-brand-600'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 <ClipboardList className="h-4.5 w-4.5" />
                 {role === 'admin' ? 'Admin Dashboard' : 'My Orders'}
-                {isActive('/orders') && (
+                {isActive(role === 'admin' ? '/admin' : '/orders') && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.75 bg-brand-600 rounded-full" />
                 )}
               </Link>
