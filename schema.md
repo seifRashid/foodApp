@@ -219,23 +219,34 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 -- 8. ROW LEVEL SECURITY (RLS) POLICIES
 -- =====================================================================
 
+-- Secure helper function to bypass RLS recursion by using SECURITY DEFINER.
+-- It executes with superuser rights, returning the current user's role securely.
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$;
+
 -- Profiles: owners read/write, admins can inspect all
-CREATE POLICY "Profiles read" ON public.profiles FOR SELECT USING (auth.uid() = id OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Profiles update" ON public.profiles FOR UPDATE USING (auth.uid() = id OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Profiles read" ON public.profiles FOR SELECT USING (auth.uid() = id OR public.get_my_role() = 'admin');
+CREATE POLICY "Profiles update" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.get_my_role() = 'admin');
 CREATE POLICY "Profiles service signup insert" ON public.profiles FOR INSERT WITH CHECK (true);
 
 -- Categories: public read, admins write
 CREATE POLICY "Categories read" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "Categories admin CRUD" ON public.categories FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Categories admin CRUD" ON public.categories FOR ALL TO authenticated USING (public.get_my_role() = 'admin');
 
 -- Foods: public read, admins write
 CREATE POLICY "Foods read" ON public.foods FOR SELECT USING (true);
-CREATE POLICY "Foods admin CRUD" ON public.foods FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Foods admin CRUD" ON public.foods FOR ALL TO authenticated USING (public.get_my_role() = 'admin');
 
 -- Orders: owners read, authenticated place orders, admins manage all
-CREATE POLICY "Orders select" ON public.orders FOR SELECT USING (auth.uid() = user_id OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Orders select" ON public.orders FOR SELECT USING (auth.uid() = user_id OR public.get_my_role() = 'admin');
 CREATE POLICY "Orders insert" ON public.orders FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Orders admin CRUD" ON public.orders FOR ALL TO authenticated USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Orders admin CRUD" ON public.orders FOR ALL TO authenticated USING (public.get_my_role() = 'admin');
 
 -- Order Items: owners read, admins view all (Trigger bypasses check since SECURITY DEFINER runs as admin)
 CREATE POLICY "Order items select" ON public.order_items FOR SELECT USING ((SELECT user_id FROM public.orders WHERE id = order_id) = auth.uid() OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
