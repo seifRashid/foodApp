@@ -10,11 +10,20 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
-  const { profile, logout, role } = useAuth();
+  const { profile, logout, role, updateProfile } = useAuth();
   const { getCartItemsCount } = useCart();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleToggleRole = async () => {
+    if (!profile) return;
+    const newRole = role === 'admin' ? 'customer' : 'admin';
+    const { error } = await updateProfile({ role: newRole });
+    if (error) {
+      alert('Failed to switch user role: ' + (error.message || error));
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/60 shadow-xs">
@@ -122,14 +131,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
 
             {/* User session button profile */}
             {profile ? (
-              <div className="flex items-center gap-2 border-l border-stone-200 pl-3">
+              <div className="flex items-center gap-2.5 border-l border-stone-200 pl-3">
                 
-                {/* Admin Identifier Badge */}
-                {role === 'admin' && (
-                  <span className="hidden lg:flex items-center gap-1 bg-red-50 border border-red-200 text-red-700 text-[10px] uppercase font-black px-2 py-1 rounded-lg">
-                    <ShieldAlert className="h-3.5 w-3.5" /> Admin Portal
-                  </span>
-                )}
+                {/* Advanced Live Role Switcher Button for instant convenience */}
+                <button
+                  type="button"
+                  onClick={handleToggleRole}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-[11px] font-extrabold transition-all hover:scale-[1.03] cursor-pointer ${
+                    role === 'admin'
+                      ? 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700'
+                      : 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800'
+                  }`}
+                  title="Switch Role instantly for Testing"
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                  <span>{role === 'admin' ? 'Role: Admin' : 'Role: Customer'}</span>
+                </button>
 
                 <Link
                   to={role === 'admin' ? '/admin' : '/dashboard'}

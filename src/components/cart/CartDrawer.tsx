@@ -6,7 +6,7 @@ import { supabase } from '../../services/supabase';
 import { CartItem } from './CartItem';
 import { Button } from '../ui/Button';
 import { Input, TextArea } from '../ui/Input';
-import { X, ShoppingBag, ArrowRight, CircleCheck, Info } from 'lucide-react';
+import { X, ShoppingBag, ArrowRight, CircleCheck, Info, User } from 'lucide-react';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -82,7 +82,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       // Structure order model
       const totalAmount = getCartTotal();
       const orderPayload = {
-        user_id: user?.id || 'anonymous',
+        user_id: user?.id || null,
         user_email: user?.email || 'anonymous@demo.com',
         customer_name: fullName,
         customer_phone: phoneNumber,
@@ -202,53 +202,75 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               )}
 
               {step === 'checkout' && (
-                <form id="checkout-form" onSubmit={handlePlaceOrder} className="flex flex-col gap-5">
-                  <div className="bg-amber-50 border-2 border-amber-200/50 p-4 rounded-2xl flex gap-3">
-                    <Info className="h-5 w-5 text-brand-600 shrink-0 mt-0.5" />
+                !user ? (
+                  <div className="flex flex-col gap-6 py-8 text-center bg-stone-50/50 p-6 rounded-2xl border border-stone-100">
+                    <div className="h-16 w-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto">
+                      <User className="h-8 w-8 text-brand-600" />
+                    </div>
                     <div>
-                      <h5 className="font-bold text-amber-950 text-sm">Simplifying Your Delivery</h5>
-                      <p className="text-amber-800 text-xs font-medium leading-relaxed mt-0.5">
-                        Please provide a clear phone number and delivery address so we can bring your warm meals quickly!
+                      <h4 className="text-xl font-extrabold text-stone-900">Sign In to Finish Order</h4>
+                      <p className="text-stone-500 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
+                        To ensure your culinary delicacies are recorded and tracked safely, please log in or create an account first!
                       </p>
                     </div>
+                    <div className="flex flex-col gap-3 mt-2">
+                      <Button to="/login" onClick={handleClose} className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-bold text-center flex justify-center items-center">
+                        Log In to Your Account
+                      </Button>
+                      <Button to="/register" onClick={handleClose} variant="outline" className="w-full py-3.5 rounded-xl font-bold text-center flex justify-center items-center">
+                        Sign Up / Create Account
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <form id="checkout-form" onSubmit={handlePlaceOrder} className="flex flex-col gap-5">
+                    <div className="bg-amber-50 border-2 border-amber-200/50 p-4 rounded-2xl flex gap-3">
+                      <Info className="h-5 w-5 text-brand-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h5 className="font-bold text-amber-950 text-sm">Simplifying Your Delivery</h5>
+                        <p className="text-amber-800 text-xs font-medium leading-relaxed mt-0.5">
+                          Please provide a clear phone number and delivery address so we can bring your warm meals quickly!
+                        </p>
+                      </div>
+                    </div>
 
-                  <Input
-                    id="checkout-name"
-                    label="Full Name (Your Name)"
-                    placeholder="e.g., John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    error={errors.fullName}
-                  />
+                    <Input
+                      id="checkout-name"
+                      label="Full Name (Your Name)"
+                      placeholder="e.g., John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      error={errors.fullName}
+                    />
 
-                  <Input
-                    id="checkout-phone"
-                    label="Phone Number"
-                    placeholder="e.g., 555-0199"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    error={errors.phoneNumber}
-                  />
+                    <Input
+                      id="checkout-phone"
+                      label="Phone Number"
+                      placeholder="e.g., 555-0199"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      error={errors.phoneNumber}
+                    />
 
-                  <TextArea
-                    id="checkout-address"
-                    label="Delivery Address"
-                    placeholder="e.g., Suite 12B, 345 Golden Valley Road, London"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    error={errors.address}
-                  />
+                    <TextArea
+                      id="checkout-address"
+                      label="Delivery Address"
+                      placeholder="e.g., Suite 12B, 345 Golden Valley Road, London"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      error={errors.address}
+                    />
 
-                  <TextArea
-                    id="checkout-notes"
-                    label="Special Cooking or Delivery Notes (Optional)"
-                    placeholder="e.g., extra spicy, ring doorbell or leave at door..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </form>
+                    <TextArea
+                      id="checkout-notes"
+                      label="Special Cooking or Delivery Notes (Optional)"
+                      placeholder="e.g., extra spicy, ring doorbell or leave at door..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </form>
+                )
               )}
 
               {step === 'success' && (
@@ -301,6 +323,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     className="w-full rounded-2xl py-3.5 bg-brand-600 hover:bg-brand-700 flex justify-center items-center gap-2"
                   >
                     Proceed to Checkout <ArrowRight className="h-5 w-5" />
+                  </Button>
+                ) : !user ? (
+                  <Button variant="ghost" size="sm" onClick={handleBackStep} className="w-full">
+                    Back to Selected Items
                   </Button>
                 ) : (
                   <div className="flex flex-col gap-2.5">

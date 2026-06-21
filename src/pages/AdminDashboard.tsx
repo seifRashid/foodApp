@@ -227,9 +227,14 @@ export const AdminDashboard: React.FC = () => {
 
       await loadDashboardData();
       setFoodModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error logging food save states:', err);
-      alert('Failed saving menu item. Please check configurations.');
+      const isRls = err?.message?.toLowerCase().includes('row-level security') || err?.code === '42501';
+      if (isRls) {
+        alert('Failed saving menu item: Live database Row-Level Security (RLS) check failed. Please ensure your account role is set to "Admin" in the navbar/dashboard before adding dishes!');
+      } else {
+        alert('Failed saving menu item. Please check configurations: ' + (err?.message || err));
+      }
     } finally {
       setFormSubmitting(false);
     }

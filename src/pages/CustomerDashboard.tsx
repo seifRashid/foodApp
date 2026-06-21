@@ -13,6 +13,7 @@ import {
   MapPin, 
   Phone, 
   ShieldCheck, 
+  ShieldAlert,
   Award, 
   TrendingUp, 
   Heart, 
@@ -27,7 +28,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 export const CustomerDashboard: React.FC = () => {
-  const { user, profile, logout, updateProfile } = useAuth();
+  const { user, profile, role, logout, updateProfile } = useAuth();
   const { addBulkToCart } = useCart();
   const navigate = useNavigate();
 
@@ -454,6 +455,63 @@ export const CustomerDashboard: React.FC = () => {
           {/* RIGHT SIDE CONTENTS column (Profile Coordinates update form) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             
+            {/* Developer Testing Control Panel */}
+            <div className="bg-amber-50/50 border border-amber-200 rounded-[28px] p-5 shadow-xs flex flex-col">
+              <div className="flex items-center gap-2.5 mb-2 pb-3 border-b border-amber-200">
+                <div className="h-9 w-9 bg-amber-100 border border-amber-250 rounded-xl flex items-center justify-center text-amber-800 shrink-0">
+                  <ShieldAlert className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-stone-900">Developer Testing Panel</h3>
+                  <p className="text-stone-500 text-[10px] font-bold">Dynamic privilege override controls.</p>
+                </div>
+              </div>
+
+              <div className="mt-2 text-stone-600 text-xs font-semibold leading-relaxed">
+                Toggle your account role to <span className="text-stone-900 font-extrabold">Administrator</span> to manage plates, or <span className="text-stone-900 font-extrabold">Customer</span> to test user receipts.
+              </div>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { error } = await updateProfile({ role: 'admin' });
+                    if (error) {
+                      alert('Failed to update: ' + error.message);
+                    } else {
+                      alert('Account successfully updated to Admin! You can now manage food plates.');
+                    }
+                  }}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    role === 'admin'
+                      ? 'bg-brand-650 text-white shadow-xs'
+                      : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
+                  }`}
+                >
+                  <ShieldCheck className="h-4 w-4" /> Role: Administrator
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { error } = await updateProfile({ role: 'customer' });
+                    if (error) {
+                      alert('Failed to update: ' + error.message);
+                    } else {
+                      alert('Account role updated to Customer!');
+                    }
+                  }}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    role === 'customer'
+                      ? 'bg-brand-650 text-white shadow-xs'
+                      : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
+                  }`}
+                >
+                  <User className="h-4 w-4" /> Role: Customer
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white border border-stone-100 rounded-[32px] p-6 shadow-warm-xs flex flex-col">
               <div className="flex items-center gap-2.5 mb-2 pb-3 border-b border-stone-100">
                 <div className="h-10 w-10 bg-brand-50 border border-brand-100 rounded-xl flex items-center justify-center text-brand-600">

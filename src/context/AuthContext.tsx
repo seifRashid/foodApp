@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { error: insertError } = await supabase
           .from('profiles')
-          .insert(newProfile);
+          .upsert(newProfile);
 
         if (!insertError) {
           setProfile(newProfile);
@@ -155,8 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: fullName,
         };
 
-        // Attempt insert to backend 'profiles' table
-        await supabase.from('profiles').insert(newProfile);
+        // Attempt insert/upsert to backend 'profiles' table
+        await supabase.from('profiles').upsert(newProfile);
       }
 
       return { error: null };

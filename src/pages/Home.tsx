@@ -155,9 +155,14 @@ export const Home: React.FC = () => {
 
       await fetchFoods();
       setFormModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Form saving error:', err);
-      alert('Unable to save food item. Please confirm server details.');
+      const isRls = err?.message?.toLowerCase().includes('row-level security') || err?.code === '42501';
+      if (isRls) {
+        alert('Unable to save food item: Live database Row-Level Security (RLS) policy failed. Please ensure your account role is set to "Admin" in the navbar/dashboard before submitting!');
+      } else {
+        alert('Unable to save food item. Please confirm server details: ' + (err?.message || err));
+      }
     } finally {
       setFormSubmitting(false);
     }
