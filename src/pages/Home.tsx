@@ -55,12 +55,97 @@ export const Home: React.FC = () => {
   const fetchFoods = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Pre-flight check & auto-seed categories on live databases
+      if (!isMockMode) {
+        try {
+          const { data: catData } = await supabase.from('categories').select('name');
+          if (!catData || catData.length === 0) {
+            const defaultCats = [
+              { name: 'Burgers', slug: 'burgers' },
+              { name: 'Pizza', slug: 'pizza' },
+              { name: 'Sides', slug: 'sides' },
+              { name: 'Salads', slug: 'salads' },
+              { name: 'Desserts', slug: 'desserts' },
+              { name: 'Drinks', slug: 'drinks' }
+            ];
+            await supabase.from('categories').insert(defaultCats);
+            console.log('Seeded database category records successfully.');
+          }
+        } catch (catErr) {
+          console.error('Non-blocking categories pre-flight check:', catErr);
+        }
+      }
+
+      // 2. Fetch foods
+      let { data, error } = await supabase
         .from('foods')
         .select('*')
         .order('name', { ascending: true });
 
       if (error) throw error;
+
+      // 3. Pre-flight check & auto-seed food items if empty in live database and user is admin
+      if (!isMockMode && (!data || data.length === 0) && isAdmin) {
+        try {
+          const seedDishes = [
+            {
+              name: 'Gourmet Cheese Burger',
+              price: 12.99,
+              description: 'Juicy Angus beef patty with cheddar cheese, crisp lettuce, fresh tomato, and house special burger sauce on a toasted brioche bun.',
+              category: 'Burgers',
+              image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Double Pepperoni Pizza',
+              price: 15.99,
+              description: 'Freshly baked hand-tossed dough topped with rustic marinara, premium double pepperoni slices, mozzarella, and dynamic Italian herbs.',
+              category: 'Pizza',
+              image_url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Golden Crispy Fries',
+              price: 4.99,
+              description: 'Premium potatoes cut into classic thin fries, fried to perfect crispy light bronze, finished with a dash of fine sea salt.',
+              category: 'Sides',
+              image_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Strawberry Milkshake',
+              price: 5.49,
+              description: 'Smooth, creamy vanilla milk combined with organic sweet strawberries, blended to cold perfection, topped with delicious whipped cream.',
+              category: 'Drinks',
+              image_url: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Crispy Caesar Salad',
+              price: 9.99,
+              description: 'Fresh crisp romaine lettuce leaves, baked garlic croutons, shredded parmesan cheese served with classic creamy Caesar dressing.',
+              category: 'Salads',
+              image_url: 'https://images.unsplash.com/photo-1550304943-4f24f54ddde9?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Warm Fudge Brownie',
+              price: 6.49,
+              description: 'Rich, soft, and chocolatey fudge brownie baked fresh, served warm, garnished with premium dark chocolate swirls.',
+              category: 'Desserts',
+              image_url: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            }
+          ];
+          const { data: insertedData, error: insertError } = await supabase.from('foods').insert(seedDishes).select('*');
+          if (!insertError && insertedData) {
+            data = insertedData;
+          }
+        } catch (seedErr) {
+          console.error('Non-blocking foods pre-flight seeding:', seedErr);
+        }
+      }
+
       setFoods(data || []);
     } catch (err) {
       console.error('Error fetching foods:', err);
@@ -154,6 +239,8 @@ export const Home: React.FC = () => {
       }
 
       await fetchFoods();
+      setSelectedCategory('All');
+      setSearchQuery('');
       setFormModalOpen(false);
     } catch (err: any) {
       console.error('Form saving error:', err);

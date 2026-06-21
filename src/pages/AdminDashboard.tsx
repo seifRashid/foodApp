@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { supabase, isMockMode } from '../services/supabase';
 import { FoodItem, Order, OrderStatus, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Loader } from '../components/ui/Loader';
@@ -93,6 +93,27 @@ export const AdminDashboard: React.FC = () => {
     try {
       setDbLoading(true);
       
+      // 1. Pre-seed Categories on live database if empty
+      if (!isMockMode) {
+        try {
+          const { data: catData } = await supabase.from('categories').select('name');
+          if (!catData || catData.length === 0) {
+            const defaultCats = [
+              { name: 'Burgers', slug: 'burgers' },
+              { name: 'Pizza', slug: 'pizza' },
+              { name: 'Sides', slug: 'sides' },
+              { name: 'Salads', slug: 'salads' },
+              { name: 'Desserts', slug: 'desserts' },
+              { name: 'Drinks', slug: 'drinks' }
+            ];
+            await supabase.from('categories').insert(defaultCats);
+            console.log('Seeded database categories via admin loader.');
+          }
+        } catch (catErr) {
+          console.error('Non-blocking dashboard categories check:', catErr);
+        }
+      }
+
       const ordersPromise = supabase
         .from('orders')
         .select('*')
@@ -108,8 +129,72 @@ export const AdminDashboard: React.FC = () => {
       if (ordersRes.error) throw ordersRes.error;
       if (foodsRes.error) throw foodsRes.error;
 
+      let foodsList = foodsRes.data || [];
+
+      // 2. Pre-seed Foods if empty in live database and admin is logged in
+      if (!isMockMode && foodsList.length === 0) {
+        try {
+          const seedDishes = [
+            {
+              name: 'Gourmet Cheese Burger',
+              price: 12.99,
+              description: 'Juicy Angus beef patty with cheddar cheese, crisp lettuce, fresh tomato, and house special burger sauce on a toasted brioche bun.',
+              category: 'Burgers',
+              image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Double Pepperoni Pizza',
+              price: 15.99,
+              description: 'Freshly baked hand-tossed dough topped with rustic marinara, premium double pepperoni slices, mozzarella, and dynamic Italian herbs.',
+              category: 'Pizza',
+              image_url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Golden Crispy Fries',
+              price: 4.99,
+              description: 'Premium potatoes cut into classic thin fries, fried to perfect crispy light bronze, finished with a dash of fine sea salt.',
+              category: 'Sides',
+              image_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Strawberry Milkshake',
+              price: 5.49,
+              description: 'Smooth, creamy vanilla milk combined with organic sweet strawberries, blended to cold perfection, topped with delicious whipped cream.',
+              category: 'Drinks',
+              image_url: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Crispy Caesar Salad',
+              price: 9.99,
+              description: 'Fresh crisp romaine lettuce leaves, baked garlic croutons, shredded parmesan cheese served with classic creamy Caesar dressing.',
+              category: 'Salads',
+              image_url: 'https://images.unsplash.com/photo-1550304943-4f24f54ddde9?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            },
+            {
+              name: 'Warm Fudge Brownie',
+              price: 6.49,
+              description: 'Rich, soft, and chocolatey fudge brownie baked fresh, served warm, garnished with premium dark chocolate swirls.',
+              category: 'Desserts',
+              image_url: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&q=80&w=600',
+              is_available: true
+            }
+          ];
+          const { data: insertedData, error: insertError } = await supabase.from('foods').insert(seedDishes).select('*');
+          if (!insertError && insertedData) {
+            foodsList = insertedData;
+          }
+        } catch (seedErr) {
+          console.error('Non-blocking live foods pre-seed failed:', seedErr);
+        }
+      }
+
       setOrders(ordersRes.data || []);
-      setFoods(foodsRes.data || []);
+      setFoods(foodsList);
     } catch (err) {
       console.error('Error loading dashboard datasets:', err);
     } finally {
@@ -226,6 +311,8 @@ export const AdminDashboard: React.FC = () => {
       }
 
       await loadDashboardData();
+      setFoodCategoryFilter('all');
+      setFoodQuery('');
       setFoodModalOpen(false);
     } catch (err: any) {
       console.error('Error logging food save states:', err);

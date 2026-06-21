@@ -72,7 +72,17 @@ export const Login: React.FC<LoginProps> = ({ isAdmin = false, isRegisterInitial
     
     const { error } = await login(demoEmail, 'demopass123');
     if (error) {
-      setAuthError(error.message || 'Incorrect email address or password.');
+      // If login fails (e.g. clean/fresh live database), automatically register the demo account on the fly!
+      const fallbackRole = demoEmail.includes('admin') ? 'admin' : 'customer';
+      const fallbackName = demoEmail.includes('admin') ? 'System Admin' : 'John Customer';
+      
+      const { error: regError } = await register(demoEmail, 'demopass123', fallbackName, fallbackRole);
+      if (regError) {
+        setAuthError(`Quick login failed: ${error.message || error}. Automatic signup fallback failed: ${regError.message}`);
+      } else {
+        // Success! Automatic register logs them in. Let's call login to confirm the profile flow triggered correctly.
+        await login(demoEmail, 'demopass123');
+      }
     }
     setIsSubmitting(false);
   };
